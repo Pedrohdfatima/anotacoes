@@ -1,0 +1,237 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Anotações</title>
+<style>
+  :root{
+    --bg:#0a0a0f; --panel:#12121a; --panel2:#1a1a26; --line:#2a2a3d;
+    --purple:#8b5cf6; --purple-d:#6d3fe0; --purple-l:#c4b5fd;
+    --white:#ffffff; --muted:#9b9bb4;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{background:var(--bg);color:var(--white);font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;display:flex;flex-direction:column}
+  header{display:flex;align-items:center;gap:12px;padding:14px 20px;border-bottom:1px solid var(--line);background:var(--panel)}
+  header h1{font-size:20px;font-weight:700;letter-spacing:.5px}
+  header h1 span{color:var(--purple)}
+  .badge{margin-left:auto;font-size:12px;padding:4px 10px;border-radius:999px;border:1px solid var(--line);color:var(--muted)}
+  .badge.ok{color:var(--purple-l);border-color:var(--purple)}
+  .badge.err{color:#fff;background:#7f1d1d;border-color:#b91c1c}
+  #menu{display:none;background:none;border:1px solid var(--line);color:var(--white);border-radius:8px;padding:6px 10px;cursor:pointer}
+  main{flex:1;display:flex;min-height:0}
+  aside{width:320px;border-right:1px solid var(--line);background:var(--panel);display:flex;flex-direction:column;min-height:0}
+  .tools{padding:14px;display:flex;flex-direction:column;gap:10px}
+  .tools input{background:var(--bg);border:1px solid var(--line);color:var(--white);padding:10px 12px;border-radius:10px;outline:none;font-size:14px}
+  .tools input:focus{border-color:var(--purple)}
+  .btn{background:var(--purple);color:var(--white);border:0;padding:10px 14px;border-radius:10px;font-weight:600;cursor:pointer;font-size:14px}
+  .btn:hover{background:var(--purple-d)}
+  .btn.ghost{background:transparent;border:1px solid var(--line);color:var(--muted)}
+  .btn.ghost:hover{border-color:#b91c1c;color:#fff;background:#7f1d1d}
+  #list{flex:1;overflow:auto;padding:0 10px 14px;display:flex;flex-direction:column;gap:8px}
+  .item{background:var(--panel2);border:1px solid transparent;border-radius:12px;padding:12px 14px;cursor:pointer;transition:.15s}
+  .item:hover{border-color:var(--line)}
+  .item.active{border-color:var(--purple);box-shadow:0 0 0 1px var(--purple) inset}
+  .item h3{font-size:15px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .item p{font-size:13px;color:var(--muted);margin-top:4px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  .item time{display:block;font-size:11px;color:var(--purple-l);margin-top:6px}
+  .empty{color:var(--muted);text-align:center;padding:30px 10px;font-size:14px}
+  section{flex:1;display:flex;flex-direction:column;min-width:0;padding:24px 32px;gap:14px}
+  #title{background:none;border:0;border-bottom:2px solid var(--line);color:var(--white);font-size:28px;font-weight:700;padding:6px 0 10px;outline:none}
+  #title:focus{border-bottom-color:var(--purple)}
+  #content{flex:1;resize:none;background:var(--panel);border:1px solid var(--line);color:var(--white);border-radius:14px;padding:18px;font-size:16px;line-height:1.6;outline:none;font-family:inherit}
+  #content:focus{border-color:var(--purple)}
+  .bar{display:flex;align-items:center;gap:12px;color:var(--muted);font-size:13px}
+  .bar .btn{margin-left:auto}
+  .placeholder{margin:auto;text-align:center;color:var(--muted)}
+  .placeholder h2{color:var(--white);margin-bottom:8px}
+  @media(max-width:760px){
+    #menu{display:block}
+    aside{position:fixed;inset:57px 0 0 0;width:auto;z-index:5;transform:translateX(-100%);transition:.2s}
+    aside.open{transform:none}
+    section{padding:16px}
+    #title{font-size:22px}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <button id="menu" aria-label="Menu">☰</button>
+  <h1>Anota<span>ções</span></h1>
+  <div id="badge" class="badge">…</div>
+</header>
+
+<main>
+  <aside id="side">
+    <div class="tools">
+      <button class="btn" id="new">+ Nova anotação</button>
+      <input id="search" placeholder="Buscar anotações…" autocomplete="off">
+    </div>
+    <div id="list"></div>
+  </aside>
+
+  <section id="editor">
+    <div class="placeholder" id="ph">
+      <h2>Nenhuma anotação selecionada</h2>
+      <p>Crie uma nova ou escolha uma na lista.</p>
+    </div>
+    <input id="title" placeholder="Título" hidden>
+    <textarea id="content" placeholder="Escreva sua anotação aqui…" hidden></textarea>
+    <div class="bar" id="bar" hidden>
+      <span id="status">Salvo</span>
+      <button class="btn ghost" id="del">Excluir</button>
+    </div>
+  </section>
+</main>
+
+<script>
+/* ============================================================
+   CONFIGURAÇÃO DO BANCO DE DADOS (Supabase)
+   Preencha com os dados do seu projeto (Settings > API):
+   ============================================================ */
+const SUPABASE_URL = "";   // ex: https://abcdefgh.supabase.co
+const SUPABASE_KEY = "";   // chave "anon public"
+const TABLE = "notes";
+/* Se ficar vazio, o site funciona em modo local (salva no navegador). */
+
+const $ = id => document.getElementById(id);
+const useDB = !!(SUPABASE_URL && SUPABASE_KEY);
+let notes = [], current = null, timer = null;
+
+/* ---------- Camada de dados ---------- */
+const api = useDB ? {
+  async req(path, opts = {}) {
+    const r = await fetch(`${SUPABASE_URL}/rest/v1/${TABLE}${path}`, {
+      ...opts,
+      headers: {
+        apikey: SUPABASE_KEY,
+        Authorization: `Bearer ${SUPABASE_KEY}`,
+        "Content-Type": "application/json",
+        Prefer: "return=representation",
+        ...(opts.headers || {})
+      }
+    });
+    if (!r.ok) throw new Error(await r.text());
+    return r.status === 204 ? null : r.json();
+  },
+  list: () => api.req("?select=*&order=updated_at.desc"),
+  create: n => api.req("", { method: "POST", body: JSON.stringify(n) }).then(r => r[0]),
+  update: (id, n) => api.req(`?id=eq.${id}`, { method: "PATCH", body: JSON.stringify({ ...n, updated_at: new Date().toISOString() }) }),
+  remove: id => api.req(`?id=eq.${id}`, { method: "DELETE" })
+} : {
+  load() { try { return JSON.parse(localStorage.getItem("anotacoes") || "[]"); } catch { return []; } },
+  save(a) { localStorage.setItem("anotacoes", JSON.stringify(a)); },
+  async list() { return this.load().sort((a, b) => b.updated_at.localeCompare(a.updated_at)); },
+  async create(n) {
+    const a = this.load(), now = new Date().toISOString();
+    const x = { id: crypto.randomUUID(), ...n, created_at: now, updated_at: now };
+    a.push(x); this.save(a); return x;
+  },
+  async update(id, n) {
+    const a = this.load(), i = a.findIndex(x => x.id === id);
+    if (i > -1) { a[i] = { ...a[i], ...n, updated_at: new Date().toISOString() }; this.save(a); }
+  },
+  async remove(id) { this.save(this.load().filter(x => x.id !== id)); }
+};
+
+/* ---------- UI ---------- */
+const fmt = d => new Date(d).toLocaleString("pt-BR", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" });
+const esc = s => s.replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+
+function setBadge(text, cls) { const b = $("badge"); b.textContent = text; b.className = "badge " + (cls || ""); }
+function setStatus(t) { $("status").textContent = t; }
+
+function renderList() {
+  const q = $("search").value.trim().toLowerCase();
+  const items = notes.filter(n => (n.title + " " + n.content).toLowerCase().includes(q));
+  $("list").innerHTML = items.length ? items.map(n => `
+    <div class="item ${n.id === current ? "active" : ""}" data-id="${n.id}">
+      <h3>${esc(n.title || "Sem título")}</h3>
+      <p>${esc(n.content || "Vazia")}</p>
+      <time>${fmt(n.updated_at)}</time>
+    </div>`).join("") : `<div class="empty">${q ? "Nada encontrado." : "Nenhuma anotação ainda."}</div>`;
+}
+
+function showEditor(show) {
+  $("ph").hidden = show;
+  ["title", "content", "bar"].forEach(i => $(i).hidden = !show);
+}
+
+function select(id) {
+  const n = notes.find(x => x.id === id);
+  if (!n) return;
+  current = id;
+  $("title").value = n.title;
+  $("content").value = n.content;
+  setStatus("Salvo");
+  showEditor(true);
+  renderList();
+  $("side").classList.remove("open");
+}
+
+async function save() {
+  const n = notes.find(x => x.id === current);
+  if (!n) return;
+  n.title = $("title").value;
+  n.content = $("content").value;
+  try {
+    await api.update(n.id, { title: n.title, content: n.content });
+    n.updated_at = new Date().toISOString();
+    setStatus("Salvo");
+    notes.sort((a, b) => b.updated_at.localeCompare(a.updated_at));
+    renderList();
+  } catch (e) { setStatus("Erro ao salvar"); console.error(e); }
+}
+
+function queueSave() {
+  setStatus("Salvando…");
+  clearTimeout(timer);
+  timer = setTimeout(save, 600);
+}
+
+async function newNote() {
+  try {
+    const n = await api.create({ title: "", content: "" });
+    notes.unshift(n);
+    select(n.id);
+    $("title").focus();
+  } catch (e) { setBadge("Erro: " + e.message.slice(0, 40), "err"); console.error(e); }
+}
+
+async function del() {
+  if (!current || !confirm("Excluir esta anotação?")) return;
+  try {
+    await api.remove(current);
+    notes = notes.filter(n => n.id !== current);
+    current = null;
+    showEditor(false);
+    renderList();
+  } catch (e) { setStatus("Erro ao excluir"); console.error(e); }
+}
+
+/* ---------- Eventos ---------- */
+$("new").onclick = newNote;
+$("del").onclick = del;
+$("title").oninput = queueSave;
+$("content").oninput = queueSave;
+$("search").oninput = renderList;
+$("menu").onclick = () => $("side").classList.toggle("open");
+$("list").onclick = e => { const it = e.target.closest(".item"); if (it) select(it.dataset.id); };
+
+/* ---------- Início ---------- */
+(async () => {
+  try {
+    notes = await api.list();
+    setBadge(useDB ? "● Conectado ao banco" : "Modo local (sem banco)", useDB ? "ok" : "");
+    renderList();
+    if (notes.length) select(notes[0].id);
+  } catch (e) {
+    setBadge("Falha na conexão com o banco", "err");
+    console.error(e);
+  }
+})();
+</script>
+</body>
+</html>
