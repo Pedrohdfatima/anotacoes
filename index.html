@@ -91,8 +91,8 @@
    CONFIGURAÇÃO DO BANCO DE DADOS (Supabase)
    Preencha com os dados do seu projeto (Settings > API):
    ============================================================ */
-const SUPABASE_URL = "";   // ex: https://abcdefgh.supabase.co
-const SUPABASE_KEY = "";   // chave "anon public"
+const SUPABASE_URL = "https://smiumjgtsmpcbrucprwk.supabase.co";
+const SUPABASE_KEY = "sb_publishable_gIJ8mfFtePmHfZG8xR1sqw_-XvE-K3_";
 const TABLE = "notes";
 /* Se ficar vazio, o site funciona em modo local (salva no navegador). */
 
@@ -107,7 +107,7 @@ const api = useDB ? {
       ...opts,
       headers: {
         apikey: SUPABASE_KEY,
-        Authorization: `Bearer ${SUPABASE_KEY}`,
+        ...(SUPABASE_KEY.startsWith("sb_") ? {} : { Authorization: `Bearer ${SUPABASE_KEY}` }),
         "Content-Type": "application/json",
         Prefer: "return=representation",
         ...(opts.headers || {})
