@@ -37,21 +37,56 @@
   .item p{font-size:13px;color:var(--muted);margin-top:4px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
   .item time{display:block;font-size:11px;color:var(--purple-l);margin-top:6px}
   .empty{color:var(--muted);text-align:center;padding:30px 10px;font-size:14px}
-  section{flex:1;display:flex;flex-direction:column;min-width:0;padding:24px 32px;gap:14px}
+  section{flex:1;display:flex;flex-direction:column;min-width:0;padding:24px 32px;gap:12px}
   #title{background:none;border:0;border-bottom:2px solid var(--line);color:var(--white);font-size:28px;font-weight:700;padding:6px 0 10px;outline:none}
   #title:focus{border-bottom-color:var(--purple)}
-  #content{flex:1;resize:none;background:var(--panel);border:1px solid var(--line);color:var(--white);border-radius:14px;padding:18px;font-size:16px;line-height:1.6;outline:none;font-family:inherit}
-  #content:focus{border-color:var(--purple)}
   .bar{display:flex;align-items:center;gap:12px;color:var(--muted);font-size:13px}
   .bar .btn{margin-left:auto}
   .placeholder{margin:auto;text-align:center;color:var(--muted)}
   .placeholder h2{color:var(--white);margin-bottom:8px}
+
+  /* ---------- Barra de ferramentas ---------- */
+  #toolbar{display:flex;flex-wrap:wrap;gap:4px;align-items:center;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:6px}
+  #toolbar[hidden],#editor[hidden],#title[hidden],.bar[hidden]{display:none}
+  .grp{display:flex;gap:2px;padding-right:6px;margin-right:2px;border-right:1px solid var(--line)}
+  .grp:last-child{border-right:0;margin-right:0;padding-right:0}
+  .tb{background:none;border:1px solid transparent;color:var(--white);min-width:32px;height:32px;padding:0 8px;border-radius:8px;cursor:pointer;font-size:14px;display:inline-flex;align-items:center;justify-content:center}
+  .tb:hover{background:var(--panel2);border-color:var(--line)}
+  .tb.on{background:var(--purple);border-color:var(--purple)}
+  .dd{position:relative}
+  .pal{position:absolute;top:36px;left:0;z-index:20;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:8px;display:none;grid-template-columns:repeat(5,22px);gap:6px}
+  .pal.open{display:grid}
+  .sw{width:22px;height:22px;border-radius:6px;border:1px solid var(--line);cursor:pointer;padding:0}
+  .sw:hover{outline:2px solid var(--purple-l)}
+
+  /* ---------- Editor ---------- */
+  #editor{flex:1;overflow:auto;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px 22px;font-size:16px;line-height:1.65;outline:none;word-wrap:break-word}
+  #editor:focus{border-color:var(--purple)}
+  #editor.is-empty::before{content:attr(data-placeholder);color:var(--muted);pointer-events:none;position:absolute}
+  #editor h1{font-size:2em;margin:.5em 0 .3em;line-height:1.25}
+  #editor h2{font-size:1.5em;margin:.5em 0 .3em;line-height:1.3}
+  #editor h3{font-size:1.2em;margin:.5em 0 .3em}
+  #editor p,#editor div{margin:.2em 0}
+  #editor ul,#editor ol{margin:.4em 0;padding-left:1.6em}
+  #editor a{color:var(--purple-l);text-decoration:underline}
+  #editor blockquote{border-left:4px solid var(--purple);padding:.2em 0 .2em 14px;margin:.6em 0;color:var(--purple-l)}
+  #editor code{background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:1px 6px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.9em;color:var(--purple-l)}
+  #editor hr{border:0;border-top:2px solid var(--line);margin:1em 0}
+  #editor .vert{writing-mode:vertical-rl;text-orientation:mixed;display:inline-block;vertical-align:top;border-left:2px solid var(--purple);padding-left:6px;margin:0 4px}
+  #editor ul.check{list-style:none;padding-left:4px}
+  #editor ul.check li{position:relative;padding-left:30px;margin:.25em 0}
+  #editor ul.check li::before{content:"";position:absolute;left:2px;top:.32em;width:16px;height:16px;border:2px solid var(--purple);border-radius:5px;cursor:pointer}
+  #editor ul.check li.done::before{background:var(--purple) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M3.5 8.5l3 3 6-7' fill='none' stroke='white' stroke-width='2'/%3E%3C/svg%3E") center/12px no-repeat}
+  #editor ul.check li.done{text-decoration:line-through;color:var(--muted)}
+
   @media(max-width:760px){
     #menu{display:block}
     aside{position:fixed;inset:57px 0 0 0;width:auto;z-index:5;transform:translateX(-100%);transition:.2s}
     aside.open{transform:none}
-    section{padding:16px}
+    section{padding:14px}
     #title{font-size:22px}
+    #toolbar{flex-wrap:nowrap;overflow-x:auto}
+    .pal{position:fixed;top:auto;left:14px}
   }
 </style>
 </head>
@@ -72,15 +107,71 @@
     <div id="list"></div>
   </aside>
 
-  <section id="editor">
+  <section>
     <div class="placeholder" id="ph">
       <h2>Nenhuma anotação selecionada</h2>
       <p>Crie uma nova ou escolha uma na lista.</p>
     </div>
+
     <input id="title" placeholder="Título" hidden>
-    <textarea id="content" placeholder="Escreva sua anotação aqui…" hidden></textarea>
+
+    <div id="toolbar" hidden>
+      <div class="grp">
+        <button class="tb" data-cmd="undo" title="Desfazer (Ctrl+Z)">↶</button>
+        <button class="tb" data-cmd="redo" title="Refazer (Ctrl+Y)">↷</button>
+      </div>
+      <div class="grp">
+        <button class="tb" data-block="h1" title="Título 1">H1</button>
+        <button class="tb" data-block="h2" title="Título 2">H2</button>
+        <button class="tb" data-block="h3" title="Título 3">H3</button>
+        <button class="tb" data-block="p" title="Texto normal">¶</button>
+      </div>
+      <div class="grp">
+        <button class="tb" data-cmd="bold" title="Negrito (Ctrl+B)"><b>B</b></button>
+        <button class="tb" data-cmd="italic" title="Itálico (Ctrl+I)"><i>I</i></button>
+        <button class="tb" data-cmd="underline" title="Sublinhado (Ctrl+U)"><u>U</u></button>
+        <button class="tb" data-cmd="strikeThrough" title="Riscado"><s>S</s></button>
+        <button class="tb" data-cmd="superscript" title="Sobrescrito">x²</button>
+        <button class="tb" data-cmd="subscript" title="Subscrito">x₂</button>
+        <button class="tb" data-act="vertical" title="Texto vertical (selecione o texto)">Aa⇅</button>
+      </div>
+      <div class="grp">
+        <div class="dd">
+          <button class="tb" data-pal="pal-color" title="Cor do texto"><span style="border-bottom:3px solid var(--purple);line-height:1">A</span></button>
+          <div class="pal" id="pal-color"></div>
+        </div>
+        <div class="dd">
+          <button class="tb" data-pal="pal-hl" title="Marca-texto">🖍</button>
+          <div class="pal" id="pal-hl"></div>
+        </div>
+      </div>
+      <div class="grp">
+        <button class="tb" data-cmd="insertUnorderedList" title="Lista com marcadores">•≡</button>
+        <button class="tb" data-cmd="insertOrderedList" title="Lista numerada">1.≡</button>
+        <button class="tb" data-act="check" title="Lista de tarefas">☑</button>
+        <button class="tb" data-cmd="outdent" title="Diminuir recuo">⇤</button>
+        <button class="tb" data-cmd="indent" title="Aumentar recuo">⇥</button>
+      </div>
+      <div class="grp">
+        <button class="tb" data-cmd="justifyLeft" title="Alinhar à esquerda">⯇</button>
+        <button class="tb" data-cmd="justifyCenter" title="Centralizar">≡</button>
+        <button class="tb" data-cmd="justifyRight" title="Alinhar à direita">⯈</button>
+        <button class="tb" data-cmd="justifyFull" title="Justificar">☰</button>
+      </div>
+      <div class="grp">
+        <button class="tb" data-act="link" title="Link (Ctrl+K)">🔗</button>
+        <button class="tb" data-block="blockquote" title="Citação">❝</button>
+        <button class="tb" data-act="code" title="Código">{ }</button>
+        <button class="tb" data-cmd="insertHorizontalRule" title="Linha divisória">―</button>
+        <button class="tb" data-act="clear" title="Limpar formatação">Tx</button>
+      </div>
+    </div>
+
+    <div id="editor" contenteditable="true" spellcheck="true" data-placeholder="Escreva sua anotação aqui…" hidden></div>
+
     <div class="bar" id="bar" hidden>
       <span id="status">Salvo</span>
+      <span id="words"></span>
       <button class="btn ghost" id="del">Excluir</button>
     </div>
   </section>
@@ -89,7 +180,6 @@
 <script>
 /* ============================================================
    CONFIGURAÇÃO DO BANCO DE DADOS (Supabase)
-   Preencha com os dados do seu projeto (Settings > API):
    ============================================================ */
 const SUPABASE_URL = "https://smiumjgtsmpcbrucprwk.supabase.co";
 const SUPABASE_KEY = "sb_publishable_gIJ8mfFtePmHfZG8xR1sqw_-XvE-K3_";
@@ -99,6 +189,7 @@ const TABLE = "notes";
 const $ = id => document.getElementById(id);
 const useDB = !!(SUPABASE_URL && SUPABASE_KEY);
 let notes = [], current = null, timer = null;
+const editor = $("editor");
 
 /* ---------- Camada de dados ---------- */
 const api = useDB ? {
@@ -136,27 +227,81 @@ const api = useDB ? {
   async remove(id) { this.save(this.load().filter(x => x.id !== id)); }
 };
 
-/* ---------- UI ---------- */
-const fmt = d => new Date(d).toLocaleString("pt-BR", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" });
-const esc = s => s.replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+/* ---------- Sanitização do HTML (segurança) ---------- */
+const ALLOWED = new Set("p div br b strong i em u s strike del sub sup ul ol li h1 h2 h3 blockquote code a hr span".split(" "));
+const DROP = new Set("script style iframe object embed meta link svg img form input button textarea select head title".split(" "));
+const STYLE_OK = new Set(["color", "background-color", "text-align", "margin", "margin-left"]);
+const CLASS_OK = new Set(["vert", "check", "done"]);
 
+function cleanStyle(s, stripColors) {
+  return s.split(";").map(p => p.split(":")).filter(([k, v]) => {
+    if (!k || v === undefined) return false;
+    k = k.trim().toLowerCase(); v = v.trim().toLowerCase();
+    if (!STYLE_OK.has(k)) return false;
+    if (stripColors && (k === "color" || k === "background-color")) return false;
+    return /^[#\w\s(),.%-]+$/.test(v) && !v.includes("url(") && !v.includes("expression");
+  }).map(([k, v]) => `${k.trim()}:${v.trim()}`).join(";");
+}
+
+function walk(node, stripColors) {
+  [...node.childNodes].forEach(ch => {
+    if (ch.nodeType === 3) return;
+    if (ch.nodeType !== 1) { ch.remove(); return; }
+    const tag = ch.tagName.toLowerCase();
+    if (DROP.has(tag)) { ch.remove(); return; }
+    walk(ch, stripColors);
+    if (!ALLOWED.has(tag)) { ch.replaceWith(...ch.childNodes); return; }
+    [...ch.attributes].forEach(a => {
+      const n = a.name.toLowerCase();
+      if (n === "href" && tag === "a") {
+        if (!/^(https?:|mailto:)/i.test(a.value.trim())) ch.removeAttribute("href");
+      } else if (n === "class") {
+        const c = a.value.split(/\s+/).filter(x => CLASS_OK.has(x)).join(" ");
+        c ? ch.setAttribute("class", c) : ch.removeAttribute("class");
+      } else if (n === "style") {
+        const s = cleanStyle(a.value, stripColors);
+        s ? ch.setAttribute("style", s) : ch.removeAttribute("style");
+      } else ch.removeAttribute(a.name);
+    });
+    if (tag === "a") { ch.setAttribute("target", "_blank"); ch.setAttribute("rel", "noopener noreferrer"); }
+  });
+}
+function clean(html, stripColors) {
+  const doc = new DOMParser().parseFromString(html, "text/html");
+  walk(doc.body, stripColors);
+  return doc.body.innerHTML;
+}
+const esc = s => s.replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const toHTML = c => /<[a-z][\s\S]*>/i.test(c || "") ? clean(c) : esc(c || "").replace(/\n/g, "<br>");
+const plain = h => { const d = document.createElement("div"); d.innerHTML = h; return (d.textContent || "").replace(/\s+/g, " ").trim(); };
+
+/* ---------- Lista de anotações ---------- */
+const fmt = d => new Date(d).toLocaleString("pt-BR", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" });
 function setBadge(text, cls) { const b = $("badge"); b.textContent = text; b.className = "badge " + (cls || ""); }
 function setStatus(t) { $("status").textContent = t; }
 
 function renderList() {
   const q = $("search").value.trim().toLowerCase();
-  const items = notes.filter(n => (n.title + " " + n.content).toLowerCase().includes(q));
+  const items = notes.filter(n => (n.title + " " + plain(toHTML(n.content))).toLowerCase().includes(q));
   $("list").innerHTML = items.length ? items.map(n => `
     <div class="item ${n.id === current ? "active" : ""}" data-id="${n.id}">
       <h3>${esc(n.title || "Sem título")}</h3>
-      <p>${esc(n.content || "Vazia")}</p>
+      <p>${esc(plain(toHTML(n.content)) || "Vazia")}</p>
       <time>${fmt(n.updated_at)}</time>
     </div>`).join("") : `<div class="empty">${q ? "Nada encontrado." : "Nenhuma anotação ainda."}</div>`;
 }
 
 function showEditor(show) {
   $("ph").hidden = show;
-  ["title", "content", "bar"].forEach(i => $(i).hidden = !show);
+  ["title", "toolbar", "editor", "bar"].forEach(i => $(i).hidden = !show);
+}
+
+function refreshState() {
+  const text = editor.textContent.trim();
+  const hasBlocks = editor.querySelector("li,hr,.vert");
+  editor.classList.toggle("is-empty", !text && !hasBlocks);
+  const w = text ? text.split(/\s+/).length : 0;
+  $("words").textContent = w + (w === 1 ? " palavra" : " palavras");
 }
 
 function select(id) {
@@ -164,7 +309,8 @@ function select(id) {
   if (!n) return;
   current = id;
   $("title").value = n.title;
-  $("content").value = n.content;
+  editor.innerHTML = toHTML(n.content);
+  refreshState();
   setStatus("Salvo");
   showEditor(true);
   renderList();
@@ -175,7 +321,7 @@ async function save() {
   const n = notes.find(x => x.id === current);
   if (!n) return;
   n.title = $("title").value;
-  n.content = $("content").value;
+  n.content = clean(editor.innerHTML);
   try {
     await api.update(n.id, { title: n.title, content: n.content });
     n.updated_at = new Date().toISOString();
@@ -184,7 +330,6 @@ async function save() {
     renderList();
   } catch (e) { setStatus("Erro ao salvar"); console.error(e); }
 }
-
 function queueSave() {
   setStatus("Salvando…");
   clearTimeout(timer);
@@ -199,7 +344,6 @@ async function newNote() {
     $("title").focus();
   } catch (e) { setBadge("Erro: " + e.message.slice(0, 40), "err"); console.error(e); }
 }
-
 async function del() {
   if (!current || !confirm("Excluir esta anotação?")) return;
   try {
@@ -211,11 +355,166 @@ async function del() {
   } catch (e) { setStatus("Erro ao excluir"); console.error(e); }
 }
 
-/* ---------- Eventos ---------- */
+/* ---------- Editor de texto rico ---------- */
+document.execCommand("styleWithCSS", false, true);
+document.execCommand("defaultParagraphSeparator", false, "p");
+
+const selEl = () => {
+  const s = getSelection();
+  if (!s.rangeCount) return null;
+  const n = s.anchorNode;
+  const el = n && (n.nodeType === 1 ? n : n.parentElement);
+  return el && editor.contains(el) ? el : null;
+};
+const exec = (c, v = null) => { editor.focus(); document.execCommand(c, false, v); };
+const changed = () => { refreshState(); queueSave(); updateButtons(); };
+
+function toggleBlock(tag) {
+  const el = selEl();
+  const same = el && el.closest(tag);
+  exec("formatBlock", same && tag !== "p" ? "p" : tag);
+}
+
+function toggleVertical() {
+  const s = getSelection();
+  if (!s.rangeCount) return;
+  const el = selEl();
+  const v = el && el.closest(".vert");
+  if (v) { v.replaceWith(...v.childNodes); return; }
+  if (s.isCollapsed) { alert("Selecione o texto que deseja deixar na vertical."); return; }
+  const r = s.getRangeAt(0);
+  const span = document.createElement("span");
+  span.className = "vert";
+  span.appendChild(r.extractContents());
+  r.insertNode(span);
+  s.removeAllRanges();
+  const nr = document.createRange(); nr.selectNodeContents(span); s.addRange(nr);
+}
+
+function toggleCheck() {
+  const el = selEl();
+  let ul = el && el.closest("ul");
+  if (ul) { ul.classList.toggle("check"); return; }
+  exec("insertUnorderedList");
+  const e2 = selEl();
+  ul = e2 && e2.closest("ul");
+  if (ul) ul.classList.add("check");
+}
+
+function addLink() {
+  const s = getSelection();
+  let url = prompt("Endereço do link:", "https://");
+  if (!url || url === "https://") return;
+  if (!/^(https?:|mailto:)/i.test(url)) url = "https://" + url;
+  if (s.isCollapsed) exec("insertHTML", `<a href="${esc(url)}">${esc(url)}</a>`);
+  else exec("createLink", url);
+}
+
+function addCode() {
+  const t = getSelection().toString();
+  exec("insertHTML", `<code>${esc(t || "código")}</code>&nbsp;`);
+}
+
+function clearFormat() {
+  exec("removeFormat");
+  const el = selEl();
+  const v = el && el.closest(".vert");
+  if (v) v.replaceWith(...v.childNodes);
+  exec("formatBlock", "p");
+}
+
+const ACTS = { vertical: toggleVertical, check: toggleCheck, link: addLink, code: addCode, clear: clearFormat };
+
+/* Barra: mantém a seleção ao clicar nos botões */
+$("toolbar").addEventListener("mousedown", e => e.preventDefault());
+$("toolbar").addEventListener("click", e => {
+  const b = e.target.closest("button");
+  if (!b) return;
+  if (b.dataset.pal) {
+    const p = $(b.dataset.pal), was = p.classList.contains("open");
+    document.querySelectorAll(".pal").forEach(x => x.classList.remove("open"));
+    if (!was) p.classList.add("open");
+    return;
+  }
+  document.querySelectorAll(".pal").forEach(x => x.classList.remove("open"));
+  if (b.dataset.cmd) {
+    const c = b.dataset.cmd;
+    if (c === "insertUnorderedList") {
+      const ul = selEl() && selEl().closest("ul.check");
+      if (ul) ul.classList.remove("check"); else exec(c);
+    } else exec(c);
+  } else if (b.dataset.block) toggleBlock(b.dataset.block);
+  else if (b.dataset.act) { editor.focus(); ACTS[b.dataset.act](); }
+  changed();
+});
+
+/* Paletas de cor */
+const TEXT_COLORS = ["#ffffff", "#c4b5fd", "#8b5cf6", "#f87171", "#fb923c", "#facc15", "#4ade80", "#38bdf8", "#f472b6", "#9b9bb4"];
+const HL_COLORS = ["#6d3fe0", "#facc15", "#4ade80", "#f472b6", "#38bdf8", "#fb923c", "#f87171", "#9b9bb4", "#ffffff", "transparent"];
+function buildPalette(id, colors, cmd) {
+  $(id).innerHTML = colors.map(c => `<button class="sw" data-c="${c}" title="${c === "transparent" ? "Remover" : c}" style="background:${c === "transparent" ? "repeating-linear-gradient(45deg,#333,#333 4px,#555 4px,#555 8px)" : c}"></button>`).join("");
+  $(id).addEventListener("click", e => {
+    const b = e.target.closest(".sw");
+    if (!b) return;
+    const c = b.dataset.c;
+    exec(cmd, cmd === "hiliteColor" && c === "transparent" ? "rgba(0,0,0,0)" : c);
+    $(id).classList.remove("open");
+    changed();
+  });
+}
+buildPalette("pal-color", TEXT_COLORS, "foreColor");
+buildPalette("pal-hl", HL_COLORS, "hiliteColor");
+document.addEventListener("click", e => {
+  if (!e.target.closest(".dd")) document.querySelectorAll(".pal").forEach(x => x.classList.remove("open"));
+});
+
+/* Estado dos botões (negrito ativo etc.) */
+function updateButtons() {
+  if (!selEl()) return;
+  document.querySelectorAll("#toolbar [data-cmd]").forEach(b => {
+    const c = b.dataset.cmd;
+    if (["undo", "redo", "outdent", "indent", "insertHorizontalRule"].includes(c)) return;
+    let on = false;
+    try { on = document.queryCommandState(c); } catch {}
+    if (c === "insertUnorderedList") on = !!selEl().closest("ul:not(.check)");
+    b.classList.toggle("on", on);
+  });
+  const el = selEl();
+  document.querySelectorAll("#toolbar [data-block]").forEach(b => b.classList.toggle("on", !!el.closest(b.dataset.block) && b.dataset.block !== "p"));
+  document.querySelector('[data-act="check"]').classList.toggle("on", !!el.closest("ul.check"));
+  document.querySelector('[data-act="vertical"]').classList.toggle("on", !!el.closest(".vert"));
+}
+document.addEventListener("selectionchange", updateButtons);
+
+/* Eventos do editor */
+editor.addEventListener("input", changed);
+editor.addEventListener("paste", e => {
+  e.preventDefault();
+  const html = e.clipboardData.getData("text/html");
+  if (html) document.execCommand("insertHTML", false, clean(html, true));
+  else document.execCommand("insertText", false, e.clipboardData.getData("text/plain"));
+});
+editor.addEventListener("click", e => {
+  const li = e.target.closest("ul.check > li");
+  if (li && e.target === li) {
+    const x = e.clientX - li.getBoundingClientRect().left;
+    if (x < 28) { li.classList.toggle("done"); changed(); }
+  }
+  const a = e.target.closest("a");
+  if (a && (e.ctrlKey || e.metaKey) && a.href) window.open(a.href, "_blank", "noopener");
+});
+editor.addEventListener("keydown", e => {
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") { e.preventDefault(); addLink(); changed(); return; }
+  if (e.key === "Tab") {
+    const el = selEl();
+    if (el && el.closest("li")) { e.preventDefault(); exec(e.shiftKey ? "outdent" : "indent"); changed(); }
+  }
+});
+
+/* ---------- Eventos gerais ---------- */
 $("new").onclick = newNote;
 $("del").onclick = del;
 $("title").oninput = queueSave;
-$("content").oninput = queueSave;
 $("search").oninput = renderList;
 $("menu").onclick = () => $("side").classList.toggle("open");
 $("list").onclick = e => { const it = e.target.closest(".item"); if (it) select(it.dataset.id); };
