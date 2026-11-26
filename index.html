@@ -242,6 +242,7 @@
   </section>
 </main>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 /* ============================================================
    CONFIGURAÇÃO DO BANCO DE DADOS (Supabase)
@@ -253,6 +254,7 @@ const SESSION_KEY = "anotacoes_sessao";
 const $ = id => document.getElementById(id);
 const editor = $("editor");
 let notes = [], current = null, timer = null, session = null, view = "login";
+let dirty = false, saving = false, baseTitle = "", baseContent = "";
 
 /* ---------- Comunicação com o banco (funções RPC) ---------- */
 async function rpc(fn, args = {}) {
@@ -309,6 +311,8 @@ function setView(v) {
 }
 
 function showAuth(msg) {
+  stopSync();
+  clearTimeout(timer); dirty = false;
   session = null; saveSession(null);
   notes = []; current = null;
   showEditor(false);
@@ -432,6 +436,7 @@ async function togglePin(id) {
   const val = !n.pinned;
   try {
     await api.pin(id, val);
+    notify();
     n.pinned = val;
     sortNotes();
     renderList();
@@ -457,13 +462,26 @@ function refreshState() {
   $("words").textContent = w + (w === 1 ? " palavra" : " palavras");
 }
 
+function loadIntoEditor(n) {
+  const hadEditor = document.activeElement === editor, hadTitle = document.activeElement === $("title");
+  $("title").value = n.title;
+  editor.innerHTML = toHTML(n.content);
+  baseTitle = n.title; baseContent = n.content; dirty = false;
+  refreshState();
+  if (hadEditor) {
+    const r = document.createRange(); r.selectNodeContents(editor); r.collapse(false);
+    const s = getSelection(); s.removeAllRanges(); s.addRange(r);
+  }
+  if (hadTitle) { const t = $("title"); t.setSelectionRange(t.value.length, t.value.length); }
+}
+
 function select(id) {
   const n = notes.find(x => x.id === id);
   if (!n) return;
+  if (id === current && !$("editor").hidden) { $("side").classList.remove("open"); return; }
+  if (dirty && current && current !== id) save();   // salva o que estava pendente antes de trocar
   current = id;
-  $("title").value = n.title;
-  editor.innerHTML = toHTML(n.content);
-  refreshState();
+  loadIntoEditor(n);
   setStatus("Salvo");
   showEditor(true);
   renderList();
@@ -474,17 +492,29 @@ function select(id) {
 async function save() {
   const n = notes.find(x => x.id === current);
   if (!n) return;
-  n.title = $("title").value;
-  n.content = clean(editor.innerHTML);
+  clearTimeout(timer);
+  const t = $("title").value, c = clean(editor.innerHTML);
+  n.title = t; n.content = c;
+  dirty = false; saving = true;
   try {
-    const r = await api.update(n.id, { title: n.title, content: n.content });
+    const r = await api.update(n.id, { title: t, content: c });
     n.updated_at = (r && r.updated_at) || new Date().toISOString();
-    setStatus("Salvo");
+    if (n.id === current) { baseTitle = t; baseContent = c; }
+    if (!dirty) setStatus("Salvo");
     sortNotes();
     renderList();
-  } catch (e) { if (!fail(e)) setStatus("Erro ao salvar"); console.error(e); }
+    notify();
+  } catch (e) {
+    if (n.id === current) dirty = true;
+    if (!fail(e)) setStatus("Erro ao salvar");
+    console.error(e);
+  } finally {
+    saving = false;
+    if (again) { again = false; refresh(); }
+  }
 }
 function queueSave() {
+  dirty = true;
   setStatus("Salvando…");
   clearTimeout(timer);
   timer = setTimeout(save, 600);
@@ -495,6 +525,7 @@ async function newNote() {
     const n = await api.create({ title: "", content: "" });
     notes.unshift(n);
     sortNotes();
+    notify();
     select(n.id);
     $("title").focus();
   } catch (e) { if (!fail(e)) setBadge("Erro ao criar", "err"); console.error(e); }
@@ -503,6 +534,8 @@ async function del() {
   if (!current || !confirm("Excluir esta anotação?")) return;
   try {
     await api.remove(current);
+    notify();
+    clearTimeout(timer); dirty = false;
     notes = notes.filter(n => n.id !== current);
     current = null;
     showEditor(false);
@@ -671,14 +704,77 @@ $("list").onclick = e => {
 };
 
 /* ---------- Início ---------- */
+/* ---------- Sincronização em tempo real ---------- */
+let sb = null, channel = null, live = false, pollTimer = null;
+let refreshing = false, again = false, refreshDebounce = null;
+
+function refreshBadge() { if (session) setBadge("👤 " + session.username + (live ? " · ● ao vivo" : ""), "ok"); }
+
+/* Avisa as outras abas/aparelhos (só um aviso, sem conteúdo) */
+function notify() {
+  if (channel && live) { try { channel.send({ type: "broadcast", event: "changed", payload: {} }); } catch {} }
+}
+
+function applyRemote(fresh) {
+  notes = fresh;
+  sortNotes();
+  if (current) {
+    const n = notes.find(x => x.id === current);
+    if (!n) {                                   // apagada em outro lugar
+      clearTimeout(timer); dirty = false; current = null; showEditor(false);
+    } else if (!dirty && !saving && (n.content !== baseContent || n.title !== baseTitle)) {
+      loadIntoEditor(n);                        // alterada em outro lugar
+      setStatus("Atualizado de outro lugar");
+      setTimeout(() => { if (!dirty) setStatus("Salvo"); }, 3000);
+    }
+  }
+  renderList();
+  updatePinBtn();
+}
+
+async function refresh() {
+  if (!session) return;
+  if (refreshing || saving) { again = true; return; }
+  refreshing = true;
+  try { applyRemote(await api.list()); }
+  catch (e) { fail(e); }
+  finally {
+    refreshing = false;
+    if (again) { again = false; refresh(); }
+  }
+}
+const scheduleRefresh = () => { clearTimeout(refreshDebounce); refreshDebounce = setTimeout(refresh, 250); };
+
+async function startSync() {
+  stopSync();
+  pollTimer = setInterval(() => { if (!document.hidden) refresh(); }, 20000);   // reserva
+  try {
+    if (!window.supabase) return;
+    if (!session.sync_key) { session.sync_key = await rpc("app_sync_key", tk()); saveSession(session); }
+    if (!session.sync_key) return;
+    sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, { auth: { persistSession: false, autoRefreshToken: false } });
+    channel = sb.channel("anot-" + session.sync_key, { config: { broadcast: { self: false } } })
+      .on("broadcast", { event: "changed" }, scheduleRefresh)
+      .subscribe(status => { live = status === "SUBSCRIBED"; refreshBadge(); });
+  } catch (e) { console.warn("Tempo real indisponível (usando checagem periódica):", e.message); }
+}
+function stopSync() {
+  clearInterval(pollTimer); pollTimer = null;
+  if (sb && channel) { try { sb.removeChannel(channel); } catch {} }
+  sb = null; channel = null; live = false;
+}
+document.addEventListener("visibilitychange", () => { if (!document.hidden) refresh(); });
+window.addEventListener("online", refresh);
+
 async function startApp() {
   $("auth").hidden = true;
-  setBadge("👤 " + session.username, "ok");
+  refreshBadge();
   try {
     notes = await api.list();
     sortNotes();
     renderList();
     if (notes.length) select(notes[0].id); else showEditor(false);
+    startSync();
   } catch (e) {
     if (!fail(e)) setBadge("Falha na conexão com o banco", "err");
     console.error(e);
