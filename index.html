@@ -2,7 +2,6 @@
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
-<link rel="icon" href="img/logo.ico" type="image/x-icon">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Anotações</title>
 <style>
@@ -16,10 +15,11 @@
   body{background:var(--bg);color:var(--white);font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;display:flex;flex-direction:column}
   header{display:flex;align-items:center;gap:12px;padding:14px 20px;border-bottom:1px solid var(--line);background:var(--panel)}
   header h1{font-size:20px;font-weight:700;letter-spacing:.5px}
-  header h1 span{color:var(--purple)}
+  header h1 span,.logo span{color:var(--purple)}
   .badge{margin-left:auto;font-size:12px;padding:4px 10px;border-radius:999px;border:1px solid var(--line);color:var(--muted)}
   .badge.ok{color:var(--purple-l);border-color:var(--purple)}
   .badge.err{color:#fff;background:#7f1d1d;border-color:#b91c1c}
+  #logout{padding:6px 12px;font-size:13px}
   #menu{display:none;background:none;border:1px solid var(--line);color:var(--white);border-radius:8px;padding:6px 10px;cursor:pointer}
   main{flex:1;display:flex;min-height:0}
   aside{width:320px;border-right:1px solid var(--line);background:var(--panel);display:flex;flex-direction:column;min-height:0}
@@ -28,8 +28,10 @@
   .tools input:focus{border-color:var(--purple)}
   .btn{background:var(--purple);color:var(--white);border:0;padding:10px 14px;border-radius:10px;font-weight:600;cursor:pointer;font-size:14px}
   .btn:hover{background:var(--purple-d)}
+  .btn:disabled{opacity:.6;cursor:wait}
   .btn.ghost{background:transparent;border:1px solid var(--line);color:var(--muted)}
   .btn.ghost:hover{border-color:#b91c1c;color:#fff;background:#7f1d1d}
+  #logout.ghost:hover{border-color:var(--purple);background:var(--panel2)}
   #list{flex:1;overflow:auto;padding:0 10px 14px;display:flex;flex-direction:column;gap:8px}
   .sec{font-size:12px;font-weight:600;color:var(--purple-l);text-transform:uppercase;letter-spacing:.8px;padding:10px 4px 2px}
   .item{position:relative;background:var(--panel2);border:1px solid transparent;border-radius:12px;padding:12px 14px;cursor:pointer;transition:.15s}
@@ -50,9 +52,34 @@
   #title{background:none;border:0;border-bottom:2px solid var(--line);color:var(--white);font-size:28px;font-weight:700;padding:6px 0 10px;outline:none}
   #title:focus{border-bottom-color:var(--purple)}
   .bar{display:flex;align-items:center;gap:12px;color:var(--muted);font-size:13px}
-  .bar .btn{margin-left:auto}
+  .bar .btn{margin-left:0}
+  .bar #pinbtn{margin-left:auto}
   .placeholder{margin:auto;text-align:center;color:var(--muted)}
   .placeholder h2{color:var(--white);margin-bottom:8px}
+
+  /* ---------- Login ---------- */
+  #auth{position:fixed;inset:0;z-index:50;background:radial-gradient(circle at 50% 0%,#241447 0%,var(--bg) 60%);display:flex;align-items:center;justify-content:center;padding:20px;overflow:auto}
+  #auth[hidden]{display:none}
+  .card{width:100%;max-width:400px;background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:28px;box-shadow:0 20px 60px rgba(139,92,246,.15)}
+  .logo{font-size:30px;font-weight:800;text-align:center;letter-spacing:.5px;margin-bottom:18px}
+  .tabs{display:flex;background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:4px;margin-bottom:18px}
+  .tabs button{flex:1;background:none;border:0;color:var(--muted);padding:9px;border-radius:9px;font-weight:600;cursor:pointer;font-size:14px}
+  .tabs button.on{background:var(--purple);color:#fff}
+  .tabs.off{display:none}
+  .hint{color:var(--muted);font-size:13px;margin-bottom:14px;text-align:center;line-height:1.4}
+  .hint:empty{display:none}
+  .card label{display:block;font-size:13px;color:var(--purple-l);margin-bottom:12px}
+  .card input{display:block;width:100%;margin-top:6px;background:var(--bg);border:1px solid var(--line);color:var(--white);padding:11px 12px;border-radius:10px;outline:none;font-size:15px}
+  .card input:focus{border-color:var(--purple)}
+  .pw{position:relative}
+  .pw input{padding-right:44px}
+  .pw button{position:absolute;right:6px;top:12px;background:none;border:0;cursor:pointer;font-size:16px;padding:4px 8px;opacity:.7}
+  .pw button:hover{opacity:1}
+  .msg{font-size:13px;min-height:18px;margin-bottom:10px;color:#fca5a5;text-align:center}
+  .msg.ok{color:#86efac}
+  #a-submit{width:100%;padding:12px}
+  .link{display:block;margin:14px auto 0;background:none;border:0;color:var(--purple-l);font-size:13px;cursor:pointer;text-decoration:underline}
+  .link:hover{color:#fff}
 
   /* ---------- Barra de ferramentas ---------- */
   #toolbar{display:flex;flex-wrap:wrap;gap:4px;align-items:center;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:6px}
@@ -96,15 +123,43 @@
     #title{font-size:22px}
     #toolbar{flex-wrap:nowrap;overflow-x:auto}
     .pal{position:fixed;top:auto;left:14px}
+    .bar{flex-wrap:wrap}
   }
 </style>
 </head>
 <body>
 
+<!-- ================= TELA DE LOGIN ================= -->
+<div id="auth">
+  <div class="card">
+    <div class="logo">Anota<span>ções</span></div>
+    <div class="tabs" id="tabs">
+      <button type="button" data-view="login" class="on">Entrar</button>
+      <button type="button" data-view="register">Cadastrar</button>
+    </div>
+    <p class="hint" id="a-hint"></p>
+    <form id="authform">
+      <label>Nome de usuário
+        <input id="a-user" autocomplete="username" maxlength="30" required autocapitalize="none" spellcheck="false">
+      </label>
+      <label><span id="a-passlabel">Senha</span>
+        <div class="pw">
+          <input id="a-pass" type="password" autocomplete="current-password" required>
+          <button type="button" id="a-eye" title="Mostrar/ocultar senha">👁</button>
+        </div>
+      </label>
+      <div class="msg" id="a-msg"></div>
+      <button class="btn" id="a-submit">Entrar</button>
+      <button type="button" class="link" id="a-link">Esqueci minha senha</button>
+    </form>
+  </div>
+</div>
+
 <header>
   <button id="menu" aria-label="Menu">☰</button>
-  <img src="img/logo.png" alt="Logo" width="100" height="100">
+  <h1>Anota<span>ções</span></h1>
   <div id="badge" class="badge">…</div>
+  <button class="btn ghost" id="logout">Sair</button>
 </header>
 
 <main>
@@ -193,48 +248,111 @@
    ============================================================ */
 const SUPABASE_URL = "https://smiumjgtsmpcbrucprwk.supabase.co";
 const SUPABASE_KEY = "sb_publishable_gIJ8mfFtePmHfZG8xR1sqw_-XvE-K3_";
-const TABLE = "notes";
-/* Se ficar vazio, o site funciona em modo local (salva no navegador). */
+const SESSION_KEY = "anotacoes_sessao";
 
 const $ = id => document.getElementById(id);
-const useDB = !!(SUPABASE_URL && SUPABASE_KEY);
-let notes = [], current = null, timer = null;
 const editor = $("editor");
+let notes = [], current = null, timer = null, session = null, view = "login";
 
-/* ---------- Camada de dados ---------- */
-const api = useDB ? {
-  async req(path, opts = {}) {
-    const r = await fetch(`${SUPABASE_URL}/rest/v1/${TABLE}${path}`, {
-      ...opts,
+/* ---------- Comunicação com o banco (funções RPC) ---------- */
+async function rpc(fn, args = {}) {
+  let r;
+  try {
+    r = await fetch(`${SUPABASE_URL}/rest/v1/rpc/${fn}`, {
+      method: "POST",
       headers: {
         apikey: SUPABASE_KEY,
         ...(SUPABASE_KEY.startsWith("sb_") ? {} : { Authorization: `Bearer ${SUPABASE_KEY}` }),
-        "Content-Type": "application/json",
-        Prefer: "return=representation",
-        ...(opts.headers || {})
-      }
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(args)
     });
-    if (!r.ok) throw new Error(await r.text());
-    return r.status === 204 ? null : r.json();
-  },
-  list: () => api.req("?select=*&order=updated_at.desc"),
-  create: n => api.req("", { method: "POST", body: JSON.stringify(n) }).then(r => r[0]),
-  update: (id, n, touch = true) => api.req(`?id=eq.${id}`, { method: "PATCH", body: JSON.stringify(touch ? { ...n, updated_at: new Date().toISOString() } : n) }),
-  remove: id => api.req(`?id=eq.${id}`, { method: "DELETE" })
-} : {
-  load() { try { return JSON.parse(localStorage.getItem("anotacoes") || "[]"); } catch { return []; } },
-  save(a) { localStorage.setItem("anotacoes", JSON.stringify(a)); },
-  async list() { return this.load().sort((a, b) => b.updated_at.localeCompare(a.updated_at)); },
-  async create(n) {
-    const a = this.load(), now = new Date().toISOString();
-    const x = { id: crypto.randomUUID(), ...n, created_at: now, updated_at: now };
-    a.push(x); this.save(a); return x;
-  },
-  async update(id, n, touch = true) {
-    const a = this.load(), i = a.findIndex(x => x.id === id);
-    if (i > -1) { a[i] = { ...a[i], ...n, ...(touch ? { updated_at: new Date().toISOString() } : {}) }; this.save(a); }
-  },
-  async remove(id) { this.save(this.load().filter(x => x.id !== id)); }
+  } catch { throw new Error("Sem conexão com o servidor."); }
+  const t = await r.text();
+  let d = null;
+  try { d = t ? JSON.parse(t) : null; } catch {}
+  if (!r.ok) throw new Error((d && d.message) || "Erro ao falar com o banco.");
+  return d;
+}
+const tk = () => ({ p_token: session.token });
+const api = {
+  list: () => rpc("app_notes_list", tk()),
+  create: n => rpc("app_note_create", { ...tk(), p_title: n.title, p_content: n.content }),
+  update: (id, n) => rpc("app_note_save", { ...tk(), p_id: id, p_title: n.title, p_content: n.content }),
+  pin: (id, v) => rpc("app_note_pin", { ...tk(), p_id: id, p_pinned: v }),
+  remove: id => rpc("app_note_delete", { ...tk(), p_id: id })
+};
+
+/* ---------- Login / cadastro / redefinir senha ---------- */
+const saveSession = s => { try { s ? localStorage.setItem(SESSION_KEY, JSON.stringify(s)) : localStorage.removeItem(SESSION_KEY); } catch {} };
+const loadSession = () => { try { return JSON.parse(localStorage.getItem(SESSION_KEY)); } catch { return null; } };
+
+function setMsg(t, ok) { const m = $("a-msg"); m.textContent = t || ""; m.className = "msg" + (ok ? " ok" : ""); }
+
+function setView(v) {
+  view = v;
+  const pass = $("a-pass");
+  $("tabs").classList.toggle("off", v === "reset");
+  document.querySelectorAll("#tabs button").forEach(b => b.classList.toggle("on", b.dataset.view === v));
+  $("a-submit").textContent = { login: "Entrar", register: "Criar conta", reset: "Redefinir senha" }[v];
+  $("a-passlabel").textContent = v === "reset" ? "Nova senha" : "Senha";
+  $("a-hint").textContent = {
+    login: "",
+    register: "Escolha um nome de usuário e uma senha (mínimo 6 caracteres).",
+    reset: "Informe seu nome de usuário e a nova senha."
+  }[v];
+  pass.autocomplete = v === "login" ? "current-password" : "new-password";
+  $("a-link").textContent = v === "reset" ? "← Voltar ao login" : "Esqueci minha senha";
+  $("a-link").hidden = v === "register";
+  pass.type = "password";
+  setMsg("");
+}
+
+function showAuth(msg) {
+  session = null; saveSession(null);
+  notes = []; current = null;
+  showEditor(false);
+  renderList();
+  $("auth").hidden = false;
+  if (msg) setMsg(msg);
+}
+
+function fail(e) {
+  if (/Sessão inválida/.test(e.message)) { showAuth("Sua sessão expirou. Entre novamente."); return true; }
+  return false;
+}
+
+document.querySelectorAll("#tabs button").forEach(b => b.onclick = () => setView(b.dataset.view));
+$("a-link").onclick = () => setView(view === "reset" ? "login" : "reset");
+$("a-eye").onclick = () => { const p = $("a-pass"); p.type = p.type === "password" ? "text" : "password"; };
+
+$("authform").onsubmit = async e => {
+  e.preventDefault();
+  const u = $("a-user").value.trim(), p = $("a-pass").value;
+  setMsg("");
+  $("a-submit").disabled = true;
+  try {
+    if (view === "reset") {
+      await rpc("app_reset_password", { p_username: u, p_new_password: p });
+      setView("login");
+      $("a-user").value = u; $("a-pass").value = "";
+      setMsg("Senha redefinida! Agora entre com a nova senha.", true);
+    } else {
+      const s = await rpc(view === "login" ? "app_login" : "app_register", { p_username: u, p_password: p });
+      session = { token: s.token, username: s.username };
+      saveSession(session);
+      $("a-pass").value = "";
+      startApp();
+    }
+  } catch (err) { setMsg(err.message); }
+  finally { $("a-submit").disabled = false; }
+};
+
+$("logout").onclick = async () => {
+  const t = session && session.token;
+  showAuth();
+  setView("login");
+  if (t) rpc("app_logout", { p_token: t }).catch(() => {});
 };
 
 /* ---------- Sanitização do HTML (segurança) ---------- */
@@ -252,7 +370,6 @@ function cleanStyle(s, stripColors) {
     return /^[#\w\s(),.%-]+$/.test(v) && !v.includes("url(") && !v.includes("expression");
   }).map(([k, v]) => `${k.trim()}:${v.trim()}`).join(";");
 }
-
 function walk(node, stripColors) {
   [...node.childNodes].forEach(ch => {
     if (ch.nodeType === 3) return;
@@ -289,7 +406,6 @@ const plain = h => { const d = document.createElement("div"); d.innerHTML = h; r
 const fmt = d => new Date(d).toLocaleString("pt-BR", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" });
 function setBadge(text, cls) { const b = $("badge"); b.textContent = text; b.className = "badge " + (cls || ""); }
 function setStatus(t) { $("status").textContent = t; }
-
 const sortNotes = () => notes.sort((a, b) => (!!b.pinned - !!a.pinned) || b.updated_at.localeCompare(a.updated_at));
 
 function renderList() {
@@ -315,15 +431,12 @@ async function togglePin(id) {
   if (!n) return;
   const val = !n.pinned;
   try {
-    await api.update(id, { pinned: val }, false);
+    await api.pin(id, val);
     n.pinned = val;
     sortNotes();
     renderList();
     if (id === current) updatePinBtn();
-  } catch (e) {
-    setBadge("Erro ao fixar (rodou o SQL da coluna?)", "err");
-    console.error(e);
-  }
+  } catch (e) { if (!fail(e)) setBadge("Erro ao fixar", "err"); console.error(e); }
 }
 function updatePinBtn() {
   const n = notes.find(x => x.id === current);
@@ -336,7 +449,6 @@ function showEditor(show) {
   $("ph").hidden = show;
   ["title", "toolbar", "editor", "bar"].forEach(i => $(i).hidden = !show);
 }
-
 function refreshState() {
   const text = editor.textContent.trim();
   const hasBlocks = editor.querySelector("li,hr,.vert");
@@ -365,12 +477,12 @@ async function save() {
   n.title = $("title").value;
   n.content = clean(editor.innerHTML);
   try {
-    await api.update(n.id, { title: n.title, content: n.content });
-    n.updated_at = new Date().toISOString();
+    const r = await api.update(n.id, { title: n.title, content: n.content });
+    n.updated_at = (r && r.updated_at) || new Date().toISOString();
     setStatus("Salvo");
     sortNotes();
     renderList();
-  } catch (e) { setStatus("Erro ao salvar"); console.error(e); }
+  } catch (e) { if (!fail(e)) setStatus("Erro ao salvar"); console.error(e); }
 }
 function queueSave() {
   setStatus("Salvando…");
@@ -380,11 +492,12 @@ function queueSave() {
 
 async function newNote() {
   try {
-    const n = await api.create({ title: "", content: "", pinned: false });
+    const n = await api.create({ title: "", content: "" });
     notes.unshift(n);
+    sortNotes();
     select(n.id);
     $("title").focus();
-  } catch (e) { setBadge("Erro: " + e.message.slice(0, 40), "err"); console.error(e); }
+  } catch (e) { if (!fail(e)) setBadge("Erro ao criar", "err"); console.error(e); }
 }
 async function del() {
   if (!current || !confirm("Excluir esta anotação?")) return;
@@ -394,7 +507,7 @@ async function del() {
     current = null;
     showEditor(false);
     renderList();
-  } catch (e) { setStatus("Erro ao excluir"); console.error(e); }
+  } catch (e) { if (!fail(e)) setStatus("Erro ao excluir"); console.error(e); }
 }
 
 /* ---------- Editor de texto rico ---------- */
@@ -416,7 +529,6 @@ function toggleBlock(tag) {
   const same = el && el.closest(tag);
   exec("formatBlock", same && tag !== "p" ? "p" : tag);
 }
-
 function toggleVertical() {
   const s = getSelection();
   if (!s.rangeCount) return;
@@ -432,7 +544,6 @@ function toggleVertical() {
   s.removeAllRanges();
   const nr = document.createRange(); nr.selectNodeContents(span); s.addRange(nr);
 }
-
 function toggleCheck() {
   const el = selEl();
   let ul = el && el.closest("ul");
@@ -442,7 +553,6 @@ function toggleCheck() {
   ul = e2 && e2.closest("ul");
   if (ul) ul.classList.add("check");
 }
-
 function addLink() {
   const s = getSelection();
   let url = prompt("Endereço do link:", "https://");
@@ -451,12 +561,10 @@ function addLink() {
   if (s.isCollapsed) exec("insertHTML", `<a href="${esc(url)}">${esc(url)}</a>`);
   else exec("createLink", url);
 }
-
 function addCode() {
   const t = getSelection().toString();
   exec("insertHTML", `<code>${esc(t || "código")}</code>&nbsp;`);
 }
-
 function clearFormat() {
   exec("removeFormat");
   const el = selEl();
@@ -464,10 +572,8 @@ function clearFormat() {
   if (v) v.replaceWith(...v.childNodes);
   exec("formatBlock", "p");
 }
-
 const ACTS = { vertical: toggleVertical, check: toggleCheck, link: addLink, code: addCode, clear: clearFormat };
 
-/* Barra: mantém a seleção ao clicar nos botões */
 $("toolbar").addEventListener("mousedown", e => e.preventDefault());
 $("toolbar").addEventListener("click", e => {
   const b = e.target.closest("button");
@@ -490,7 +596,6 @@ $("toolbar").addEventListener("click", e => {
   changed();
 });
 
-/* Paletas de cor */
 const TEXT_COLORS = ["#ffffff", "#c4b5fd", "#8b5cf6", "#f87171", "#fb923c", "#facc15", "#4ade80", "#38bdf8", "#f472b6", "#9b9bb4"];
 const HL_COLORS = ["#6d3fe0", "#facc15", "#4ade80", "#f472b6", "#38bdf8", "#fb923c", "#f87171", "#9b9bb4", "#ffffff", "transparent"];
 function buildPalette(id, colors, cmd) {
@@ -510,7 +615,6 @@ document.addEventListener("click", e => {
   if (!e.target.closest(".dd")) document.querySelectorAll(".pal").forEach(x => x.classList.remove("open"));
 });
 
-/* Estado dos botões (negrito ativo etc.) */
 function updateButtons() {
   if (!selEl()) return;
   document.querySelectorAll("#toolbar [data-cmd]").forEach(b => {
@@ -528,7 +632,6 @@ function updateButtons() {
 }
 document.addEventListener("selectionchange", updateButtons);
 
-/* Eventos do editor */
 editor.addEventListener("input", changed);
 editor.addEventListener("paste", e => {
   e.preventDefault();
@@ -568,18 +671,23 @@ $("list").onclick = e => {
 };
 
 /* ---------- Início ---------- */
-(async () => {
+async function startApp() {
+  $("auth").hidden = true;
+  setBadge("👤 " + session.username, "ok");
   try {
     notes = await api.list();
     sortNotes();
-    setBadge(useDB ? "● Conectado ao banco" : "Modo local (sem banco)", useDB ? "ok" : "");
     renderList();
-    if (notes.length) select(notes[0].id);
+    if (notes.length) select(notes[0].id); else showEditor(false);
   } catch (e) {
-    setBadge("Falha na conexão com o banco", "err");
+    if (!fail(e)) setBadge("Falha na conexão com o banco", "err");
     console.error(e);
   }
-})();
+}
+
+setView("login");
+session = loadSession();
+if (session && session.token) startApp(); else showAuth();
 </script>
 </body>
 </html>
